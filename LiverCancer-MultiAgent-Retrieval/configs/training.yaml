@@ -1,0 +1,8 @@
+training:
+  batch_size: 16
+  epochs: 100
+  learning_rate: 0.0001
+  optimizer: "AdamW"
+  loss: "contrastive_loss"
+  seed: 42
+  num_workers: 4

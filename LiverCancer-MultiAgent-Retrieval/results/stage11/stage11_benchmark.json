@@ -1,0 +1,10 @@
+{
+    "preprocessing": "0.012 sec",
+    "segmentation": "0.085 sec",
+    "feature_extraction": "0.034 sec",
+    "embedding": "0.022 sec",
+    "faiss": "0.003 sec",
+    "reranking": "0.015 sec",
+    "explanation": "0.005 sec",
+    "total": "0.176 sec"
+}

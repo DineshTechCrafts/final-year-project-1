@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liver Cancer Image Retrieval</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f3f4f6; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function App() {
+            const [file, setFile] = useState(null);
+            const [previewUrl, setPreviewUrl] = useState(null);
+            const [modality, setModality] = useState("CT");
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const [result, setResult] = useState(null);
+
+            const handleFileChange = (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    const f = e.target.files[0];
+                    setFile(f);
+                    setPreviewUrl(URL.createObjectURL(f));
+                }
+            };
+
+            const analyzeImage = async () => {
+                if (!file) {
+                    setError("Please select an image first.");
+                    return;
+                }
+                setLoading(true);
+                setError(null);
+                setResult(null);
+
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("modality", modality);
+
+                try {
+                    const response = await fetch("http://localhost:8000/api/inference", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        // Strict validation requirement: Intercept unavailable component
+                        if (data.detail && data.detail.includes("UNAVAILABLE")) {
+                            throw new Error("Component unavailable — inference stopped.");
+                        }
+                        throw new Error(data.detail || "Inference failed");
+                    }
+                    
+                    setResult(data);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen p-8 max-w-5xl mx-auto font-sans text-gray-800">
+                    <header className="mb-10 text-center border-b pb-6 border-gray-300">
+                        <h1 className="text-4xl font-bold text-blue-900 mb-2">Liver Cancer Image Retrieval</h1>
+                        <p className="text-gray-600">RESEARCH INFERENCE MODE</p>
+                        <p className="text-sm text-gray-500 mt-1 italic">Results generated using frozen research artifacts.</p>
+                    </header>
+
+                    <div className="bg-white rounded-lg shadow p-8 mb-8">
+                        <h2 className="text-2xl font-semibold mb-4 text-gray-700">Upload Case</h2>
+                        
+                        <div className="flex gap-4 mb-6">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" value="CT" checked={modality === "CT"} onChange={() => setModality("CT")} className="w-4 h-4 text-blue-600" />
+                                <span>CT</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" value="MRI" checked={modality === "MRI"} onChange={() => setModality("MRI")} className="w-4 h-4 text-blue-600" />
+                                <span>MRI</span>
+                            </label>
+                        </div>
+
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center mb-6 hover:bg-gray-50 transition">
+                            <input type="file" accept=".jpg,.jpeg,.png" onChange={handleFileChange} className="block w-full text-sm text-slate-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100 mx-auto max-w-xs mb-4
+                            "/>
+                            {previewUrl && (
+                                <img src={previewUrl} alt="Preview" className="mx-auto h-48 object-contain rounded border" />
+                            )}
+                        </div>
+
+                        <button 
+                            onClick={analyzeImage} 
+                            disabled={loading}
+                            className={`w-full py-3 rounded-lg font-bold text-white transition ${{loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+                        >
+                            {loading ? "Executing Frozen Pipeline..." : "ANALYZE IMAGE"}
+                        </button>
+
+                        {error && (
+                            <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+                                <p className="font-bold">Execution Halted</p>
+                                <p>{error}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

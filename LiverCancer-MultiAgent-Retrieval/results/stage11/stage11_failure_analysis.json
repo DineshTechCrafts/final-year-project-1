@@ -1,0 +1,11 @@
+{
+    "Type_1": "High FAISS score but low anatomical similarity.",
+    "cases": [
+        {
+            "query": "CASE_045",
+            "candidate": "CASE_089",
+            "failure_type": "Type_1",
+            "reason": "Tumor perfectly matches visual texture but sits on opposite liver lobe."
+        }
+    ]
+}

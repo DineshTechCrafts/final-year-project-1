@@ -1,0 +1,14 @@
+model:
+  name: "multi_agent_retrieval_framework"
+  encoders:
+    visual:
+      architecture: "resnet50_3d"
+      pretrained: true
+    clinical:
+      architecture: "mlp"
+      hidden_dims: [256, 128]
+  fusion:
+    type: "attention"
+  retrieval:
+    metric: "cosine"
+    top_k: 10

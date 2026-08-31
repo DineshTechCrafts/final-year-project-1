@@ -1,0 +1,9 @@
+dataset:
+  name: "liver_cancer_multimodal"
+  data_root: ""
+  modalities:
+    - "CT"
+    - "MRI"
+  image_size: [128, 128, 128]
+  spacing: [1.0, 1.0, 1.0]
+  normalization: "z_score"

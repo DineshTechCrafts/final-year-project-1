@@ -1,0 +1,37 @@
+colors:
+  black:
+    label: 0
+    name: Background
+    rgb:
+    - 0
+    - 0
+    - 0
+  blue:
+    label: 4
+    name: Aorta
+    rgb:
+    - 42
+    - 125
+    - 209
+  green:
+    label: 1
+    name: Liver
+    rgb:
+    - 122
+    - 199
+    - 120
+  red:
+    label: 2
+    name: Mass
+    rgb:
+    - 249
+    - 66
+    - 66
+  yellow:
+    label: 3
+    name: Portal Vein
+    rgb:
+    - 250
+    - 200
+    - 13
+threshold: 40.0

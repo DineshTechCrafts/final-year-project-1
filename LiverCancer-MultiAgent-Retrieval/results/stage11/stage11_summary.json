@@ -1,0 +1,13 @@
+{
+    "status": "RESEARCH_VALIDATION_COMPUTATIONS_COMPLETE",
+    "scientific_limitations": [
+        "The available images are JPEG-derived 8-bit representations.",
+        "They are not raw HU measurements.",
+        "Physical voxel spacing is unavailable.",
+        "Physical tumor volumes cannot therefore be reported.",
+        "Retrieval similarity is computational similarity.",
+        "The public dataset does not provide validated medical ground-truth labels.",
+        "The system is not a diagnostic or treatment recommendation system.",
+        "The explanation layer verbalizes computational evidence and does not establish biological truth."
+    ]
+}

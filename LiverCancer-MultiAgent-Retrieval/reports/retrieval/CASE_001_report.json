@@ -1,0 +1,45 @@
+{
+    "report_version": "1.0",
+    "query_case_id": "CASE_001",
+    "retrieval_method": "gated_multimodal_reranking",
+    "candidate_count": 10,
+    "results": [
+        {
+            "rank": 1,
+            "candidate_case_id": "CASE_027",
+            "faiss_rank": 4,
+            "numerical_faithfulness": [
+                {
+                    "source_value": 0.87,
+                    "display_value": 0.87,
+                    "source_path": "results[0].scores.final"
+                },
+                {
+                    "source_value": 0.88,
+                    "display_value": 0.88,
+                    "source_path": "results[0].scores.morphology"
+                }
+            ],
+            "scores": {
+                "faiss": 0.91,
+                "morphology": 0.88,
+                "anatomy": 0.82,
+                "intensity": 0.73,
+                "segmentation_quality": 0.94,
+                "final": 0.87
+            },
+            "strongest_evidence": [
+                "morphology"
+            ],
+            "weakest_evidence": [
+                "intensity"
+            ],
+            "explanation_confidence": "HIGH",
+            "summary": "CASE_027 was ranked highly because its multimodal representation showed strong overall similarity to the query. Strongest similarity evidence came from Morphology. In contrast, Intensity similarity was comparatively weaker.",
+            "limitations": [
+                "JPEG-derived images are not raw HU.",
+                "No physical voxel spacing is available."
+            ]
+        }
+    ]
+}

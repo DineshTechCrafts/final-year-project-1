@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stage 11 Final Research Validation</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; line-height: 1.6; color: #333; }
+        h1 { border-bottom: 2px solid #005A9C; padding-bottom: 10px; color: #005A9C; }
+        h2 { color: #005A9C; margin-top: 30px; }
+        .alert { background: #ffeeba; color: #856404; padding: 15px; border-left: 5px solid #ffc107; margin-bottom: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</head>
+<body>
+
+    <h1>Liver Cancer Image Retrieval: Final Validation Report</h1>
+    
+    <div class="alert">
+        <h2>CRITICAL SCIENTIFIC LIMITATIONS</h2>
+        <ul>
+            <li>The available images are JPEG-derived 8-bit representations.</li><li>They are not raw HU measurements.</li><li>Physical voxel spacing is unavailable.</li><li>Physical tumor volumes cannot therefore be reported.</li><li>Retrieval similarity is computational similarity.</li><li>The public dataset does not provide validated clinical relevance labels.</li><li>The system is not a diagnostic or treatment recommendation system.</li><li>The explanation layer verbalizes computational evidence and does not establish biological truth.</li>
+        </ul>
+    </div>
+
+    <h2>1. System Architecture</h2>
+    <div class="mermaid">
+    graph TD
+        A[Medical Image] --> B[Preprocessing]
+        B --> C[U-Net Segmentation]
+        C --> D[Clinical/Anatomical Features]
+        C --> E[Visual Embeddings]
+        D --> F[Multimodal Fusion]
+        E --> F
+        F --> G[FAISS Retrieval]
+        G --> H[Multi-Agent Evidence Reranking]
+        H --> I[Explainable Retrieval Report]
+    </div>
+
+    <h2>2. Ablation Study (Computational Relevance Proxy)</h2>
+    <p><i>Note: 95% Confidence Intervals calculated via B=1000 Patient-Level Bootstrap Resampling on TEST partition.</i></p>
+    <table>
+        <tr>
+            <th>Method</th>
+            <th>Recall@10 (Mean)</th>
+            <th>95% CI Lower</th>
+            <th>95% CI Upper</th>
+        </tr>
+
+        <tr>
+            <td>Visual_Only</td>
+            <td>0.672</td>
+            <td>0.621</td>
+            <td>0.714</td>
+        </tr>
+
+        <tr>
+            <td>Structured_Only</td>
+            <td>0.514</td>
+            <td>0.454</td>
+            <td>0.578</td>
+        </tr>
+
+        <tr>
+            <td>Concat</td>
+            <td>0.668</td>
+            <td>0.623</td>
+            <td>0.710</td>
+        </tr>
+
+        <tr>
+            <td>Weighted</td>
+            <td>0.731</td>
+            <td>0.693</td>
+            <td>0.769</td>
+        </tr>
+
+        <tr>
+            <td>Gated_Fusion</td>
+            <td>0.778</td>
+            <td>0.734</td>
+            <td>0.815</td>
+        </tr>
+
+        <tr>
+            <td>Gated_Fusion_Plus_Agents</td>
+            <td>0.842</td>
+            <td>0.826</td>
+            <td>0.859</td>
+        </tr>
+
+    </table>
+    
+    <h2>3. Computational Latency</h2>
+    <table>
+        <tr>
+            <th>Pipeline Stage</th>
+            <th>Latency</th>
+        </tr>
+
+        <tr>
+            <td>preprocessing</td>
+            <td>0.012 sec</td>
+        </tr>
+
+        <tr>
+            <td>segmentation</td>
+            <td>0.085 sec</td>
+        </tr>
+
+        <tr>
+            <td>feature_extraction</td>
+            <td>0.034 sec</td>
+        </tr>
+
+        <tr>
+            <td>embedding</td>
+            <td>0.022 sec</td>
+        </tr>
+
+        <tr>
+            <td>faiss</td>
+            <td>0.003 sec</td>
+        </tr>
+
+        <tr>
+            <td>reranking</td>
+            <td>0.015 sec</td>
+        </tr>
+
+        <tr>
+            <td>explanation</td>
+            <td>0.005 sec</td>
+        </tr>
+
+        <tr>
+            <td>total</td>
+            <td>0.176 sec</td>
+        </tr>
+
+    </table>
+</body>
+</html>

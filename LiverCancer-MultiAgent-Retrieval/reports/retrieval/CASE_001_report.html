@@ -1,0 +1,53 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Liver Cancer Image Retrieval Report</title>
+        <style>
+            body { font-family: monospace; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 20px; }
+            .header { border-bottom: 2px dashed #000; padding-bottom: 20px; margin-bottom: 20px; text-align: center; }
+            .section { margin-bottom: 30px; border-bottom: 1px dashed #ccc; padding-bottom: 20px; }
+            .alert { background: #fff3cd; color: #856404; padding: 10px; border-left: 5px solid #ffeeba; margin-top: 30px; }
+            h2 { color: #333; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>LIVER CANCER IMAGE RETRIEVAL</h1>
+            <h2>EVIDENCE-BASED CASE SIMILARITY REPORT</h2>
+            <p>Query Case: CASE_001</p>
+        </div>
+        
+        <div class="section">
+            <h3>RETRIEVAL METHOD</h3>
+            <p>Multimodal Gated Retrieval + Evidence Reranking</p>
+        </div>
+        
+        <div class="section">
+            <h3>TOP MATCH #1</h3>
+            <p><b>Candidate:</b> CASE_027</p>
+            <p><b>Final Score:</b> 0.870</p>
+            <p><b>FAISS Similarity:</b> 0.910</p>
+            <br/>
+            <p><b>Morphology:</b> 0.880</p>
+            <p><b>Anatomy:</b> 0.820</p>
+            <p><b>Intensity:</b> 0.730</p>
+            <p><b>Segmentation Quality:</b> 0.940</p>
+            <br/>
+            <h4>WHY THIS CASE WAS RANKED HIGH</h4>
+            <p>CASE_027 was ranked highly because its multimodal representation showed strong overall similarity to the query. Strongest similarity evidence came from Morphology. In contrast, Intensity similarity was comparatively weaker.</p>
+        </div>
+        
+        <div class="section">
+            <h3>LIMITATIONS</h3>
+            <ul>
+                <li>JPEG-derived images are not raw HU.</li><li>No physical voxel spacing is available.</li>
+            </ul>
+        </div>
+        
+        <div class="alert">
+            <b>IMPORTANT:</b> This report describes computational similarity based on image-derived evidence. It is not a diagnosis, prognosis, or treatment recommendation.
+        </div>
+    </body>
+    </html>
+    

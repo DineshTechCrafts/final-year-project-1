@@ -1,0 +1,29 @@
+dataset:
+  root_dir: "data/cache/cases"
+  split_file: "data/metadata/patient_split.json"
+model:
+  architecture: "U-Net"
+  encoder: "resnet34"
+  encoder_weights: "imagenet"
+  in_channels: 3
+  classes: 5
+training:
+  image_size: [256, 256]
+  batch_size: 4
+  epochs: 50
+  learning_rate: 0.001
+  optimizer: "AdamW"
+  scheduler: "CosineAnnealingLR"
+  ignore_index: 255
+loss:
+  type: "CrossEntropyDice"
+  class_weights: [0.1, 1.0, 5.0, 1.0, 1.0] # Background, Liver, Mass, Portal Vein, Aorta
+early_stopping:
+  enabled: true
+  monitor: "validation_mass_dice"
+  mode: "max"
+  patience: 10
+  min_delta: 0.001
+augmentation:
+  enabled: true
+random_seed: 42

@@ -1,0 +1,12 @@
+{
+    "dataset_manifest_version": "1.0.0 (FROZEN)",
+    "feature_version": "1.0.0",
+    "fitting_partition": "TRAIN",
+    "imputation_strategy": "median",
+    "scaling_strategy": "StandardScaler",
+    "numerical_features_scaled": [
+        "tumor_area_px",
+        "liver_area_px",
+        "portal_vein_area_px"
+    ]
+}

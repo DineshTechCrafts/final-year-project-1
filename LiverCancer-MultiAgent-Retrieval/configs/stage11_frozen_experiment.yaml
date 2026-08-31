@@ -1,0 +1,20 @@
+experiment:
+  name: "stage11_frozen_research_validation"
+  random_seed: 42
+  dataset_split: "frozen_test_partition"
+
+models:
+  segmentation: "UNet_ResNet34_Frozen"
+  embedding: "ResNet50_ImageNet_Frozen"
+  fusion: "GatedEvidenceFusion"
+
+parameters:
+  top_n_candidates: 100
+  top_k_retrieval: 10
+  faiss_metric: "IndexFlatIP"
+  patient_exclusion: true
+  bootstrap_iterations: 1000
+
+constraints:
+  no_test_fitting: true
+  no_clinical_claims: true
