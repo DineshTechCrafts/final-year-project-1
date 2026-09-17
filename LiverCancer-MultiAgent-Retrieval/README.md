@@ -29,7 +29,8 @@ Project structure and development environment have been initialized. No ML model
 - `preprocessing/`: Scripts and modules for data cleaning and preprocessing.
 - `segmentation/`: Liver and tumor segmentation modules.
 - `features/`: Feature extraction and processing.
-- `agents/`: Multi-agent system implementation.
+- `agents/`: Multi-agent system implementation (including the Decision / Results Agent).
+- `prompts/`: LLM prompt templates kept separate from agent code.
 - `models/`: Encoders, fusion models, retrieval models, and custom losses.
 - `retrieval/`: Indexing and case matching logic.
 - `evaluation/`: Metrics and evaluation scripts.
@@ -51,8 +52,20 @@ Project structure and development environment have been initialized. No ML model
    ```
 
 ## Configuration
-Configuration is kept separate from implementation. We use YAML files stored in the `configs/` directory (e.g., `dataset.yaml`, `model.yaml`, `training.yaml`). 
+Configuration is kept separate from implementation. We use YAML files stored in the `configs/` directory (e.g., `default.yaml`, `dataset.yaml`, `model.yaml`, `training.yaml`). 
 Paths and sensitive configuration should be managed via environment variables (see `.env.example`).
+
+## Decision / Results Agent
+The Decision / Results Agent (`agents/decision_agent.py`) is an evidence-synthesis component. It reads structured outputs from imaging, segmentation, feature extraction, radiomics, and retrieval, then asks a **local Llama 3.1 8B** model via **Ollama** to explain why retrieved HCC cases are similar.
+
+It does **not** segment images, extract features, run FAISS, fine-tune Llama, or call OpenAI/Groq/cloud APIs. If Ollama is down, the agent returns an error instead of falling back to another provider. The model is instructed not to invent clinical history, diagnosis, treatment, or prognosis that is absent from the supplied evidence.
+
+Settings live under `decision_agent` in `configs/default.yaml`. Prompts are in `prompts/decision_prompt.py`.
+
+```bash
+# Requires a local Ollama daemon with: ollama pull llama3.1:8b
+python scripts/test_decision_agent.py
+```
 
 ## Data Privacy & Provenance Principles
 - **No patient identifying information (PII/PHI)** will be stored unnecessarily.

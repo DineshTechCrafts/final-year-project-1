@@ -2,6 +2,7 @@ import json
 import os
 import glob
 import traceback
+import hashlib
 
 import numpy as np
 import pydicom
@@ -12,7 +13,8 @@ from PIL import Image
 # CONFIGURATION
 # ============================================================
 
-BASE = r"E:\Liver wala thing"
+_DEFAULT_BASE = r"C:\Users\DINESH\Desktop\Liver wala thing"
+BASE = r"E:\Liver wala thing" if os.path.exists(r"E:\Liver wala thing") else _DEFAULT_BASE
 
 PLAN_FILE = os.path.join(
     BASE,
@@ -22,6 +24,11 @@ PLAN_FILE = os.path.join(
 OUT_ROOT = os.path.join(
     BASE,
     r"data\processed"
+)
+
+CACHE_CASES_ROOT = os.path.join(
+    BASE,
+    r"LiverCancer-MultiAgent-Retrieval\data\cache\cases"
 )
 
 IMG_SIZE = (256, 256)
@@ -510,6 +517,8 @@ for patient_index, item in enumerate(plan, 1):
 
         saved_images = 0
         saved_masks = 0
+        patient_vol_imgs = []
+        patient_vol_masks = []
 
         for i, ds in enumerate(ct):
 
@@ -625,6 +634,41 @@ for patient_index, item in enumerate(plan, 1):
 
             saved_images += 1
             saved_masks += 1
+            patient_vol_imgs.append(np.array(image, dtype=np.uint8))
+            patient_vol_masks.append(np.array(mask, dtype=np.uint8))
+
+        # ----------------------------------------------------
+        # Save volumetric .npy and metadata.json for HCCTACESegDataset
+        # ----------------------------------------------------
+        try:
+            pid = hashlib.sha256(patient.encode()).hexdigest()[:12]
+            ct_series_uid = ct_info.get("series_uid", "")
+            suid_suffix = ct_series_uid[-6:] if len(ct_series_uid) >= 6 else ct_series_uid
+            case_id = f"{pid}_{suid_suffix}"
+            case_dir = os.path.join(CACHE_CASES_ROOT, case_id)
+            os.makedirs(case_dir, exist_ok=True)
+
+            vol_img_arr = np.stack(patient_vol_imgs, axis=0)
+            vol_mask_arr = np.stack(patient_vol_masks, axis=0)
+
+            np.save(os.path.join(case_dir, "image.npy"), vol_img_arr)
+            np.save(os.path.join(case_dir, "mask.npy"), vol_mask_arr)
+
+            u_labels = np.unique(vol_mask_arr)
+            case_meta = {
+                "internal_patient_id": pid,
+                "internal_case_id": case_id,
+                "ct_series_uid": ct_series_uid,
+                "num_slices": len(patient_vol_imgs),
+                "image_shape": list(vol_img_arr.shape),
+                "mask_shape": list(vol_mask_arr.shape),
+                "original_patient_id": patient,
+                "labels_present": [int(u) for u in u_labels]
+            }
+            with open(os.path.join(case_dir, "metadata.json"), "w", encoding="utf-8") as f_meta:
+                json.dump(case_meta, f_meta, indent=2)
+        except Exception as e_vol:
+            print("  Warning: could not write volumetric cache:", e_vol)
 
         # ----------------------------------------------------
         # Statistics

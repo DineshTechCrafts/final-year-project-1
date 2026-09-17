@@ -1,0 +1,11 @@
+# Default runtime configuration for the multi-agent retrieval framework.
+# Paths and secrets should still be supplied via environment variables.
+
+decision_agent:
+  enabled: true
+  provider: ollama
+  model: llama3.1:8b
+  host: "http://127.0.0.1:11434"
+  temperature: 0.1
+  max_tokens: 1024
+  timeout_seconds: 120

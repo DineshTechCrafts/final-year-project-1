@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import yaml
+import numpy as np
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -96,7 +97,7 @@ def main():
     criterion = CrossEntropyDiceLoss(
         class_weights=config["loss"]["class_weights"],
         ignore_index=config["training"]["ignore_index"]
-    )
+    ).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=config["training"]["learning_rate"])
     
     run_dir = PROJECT_ROOT / "runs" / "segmentation_baseline" / f"exp_{args.experiment}"

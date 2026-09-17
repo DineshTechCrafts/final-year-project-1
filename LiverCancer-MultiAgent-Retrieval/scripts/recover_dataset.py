@@ -12,6 +12,66 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 from preprocessing.hf_dataset_client import HFDatasetClient
 
+# ---------------------------------------------------------------------------
+# Color → class-index lookup table
+#
+# The HCC-TACE-Seg HuggingFace dataset renders segmentation masks as RGB PNGs
+# using this fixed palette (Background is pure black = no annotation):
+#
+#   0 = Background  (  0,   0,   0)  — black
+#   1 = Liver       (255,   0,   0)  — red
+#   2 = HCC Mass    (255, 255,   0)  — yellow
+#   3 = Portal Vein (  0,   0, 255)  — blue
+#   4 = Aorta       (  0, 255,   0)  — green
+#
+# rgb_to_class() converts an (H, W, 3) uint8 RGB array →
+# an (H, W) uint8 class-index array with values in {0, 1, 2, 3, 4}.
+# ---------------------------------------------------------------------------
+
+_COLOR_TO_CLASS = np.array([
+    [  0,   0,   0],   # 0 = Background
+    [255,   0,   0],   # 1 = Liver
+    [255, 255,   0],   # 2 = HCC Mass
+    [  0,   0, 255],   # 3 = Portal Vein
+    [  0, 255,   0],   # 4 = Aorta
+], dtype=np.float32)
+
+# Maximum L2 distance (in RGB space) to still assign a class.
+# sqrt(3 * 255^2) ≈ 441 is the maximum possible distance.
+# We use 80 as a generous threshold that covers JPEG boundary smear
+# while still being far enough from neighbouring palette colours to
+# avoid mis-classification.
+_MAX_PALETTE_DIST = 80.0
+
+
+def rgb_to_class(rgb: np.ndarray) -> np.ndarray:
+    """Map (H, W, 3) uint8 RGB mask -> (H, W) uint8 class-index array.
+
+    Uses nearest-palette-colour (L2 distance) assignment so that JPEG
+    compression artefacts at segment boundaries are still mapped to the
+    correct class rather than silently falling through to Background.
+
+    Pixels whose nearest palette colour is more than _MAX_PALETTE_DIST
+    away in L2 RGB space are mapped to 0 (Background).
+    """
+    H, W, _ = rgb.shape
+    # (H*W, 3) float array
+    flat = rgb.reshape(-1, 3).astype(np.float32)
+
+    # Broadcast subtraction: (H*W, 1, 3) - (1, 5, 3) -> (H*W, 5, 3)
+    diff = flat[:, np.newaxis, :] - _COLOR_TO_CLASS[np.newaxis, :, :]
+    dists = np.sqrt(np.sum(diff ** 2, axis=-1))  # (H*W, 5)
+
+    nearest_class = np.argmin(dists, axis=-1).astype(np.uint8)  # (H*W,)
+    nearest_dist  = dists[np.arange(len(flat)), nearest_class]   # (H*W,)
+
+    # Pixels too far from any known colour default to Background
+    nearest_class[nearest_dist > _MAX_PALETTE_DIST] = 0
+
+    return nearest_class.reshape(H, W)
+
+
+
 def main():
     metadata_dir = PROJECT_ROOT / "data" / "metadata"
     cache_cases_dir = PROJECT_ROOT / "data" / "cache" / "cases"
@@ -70,8 +130,12 @@ def main():
                     mask_arr = None
                     if mask_url:
                         resp = requests.get(mask_url, timeout=10)
-                        mask = Image.open(BytesIO(resp.content)).convert("RGB")
-                        mask_arr = np.array(mask)
+                        # Download the RGB-rendered mask PNG and convert it
+                        # back to a class-index label map (values 0-4).
+                        mask_rgb = np.array(
+                            Image.open(BytesIO(resp.content)).convert("RGB")
+                        )
+                        mask_arr = rgb_to_class(mask_rgb)  # shape (H, W), dtype uint8
                     
                     if img_arr is not None and mask_arr is not None and img_arr.shape[:2] == mask_arr.shape[:2]:
                         slices_data.append({

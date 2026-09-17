@@ -14,6 +14,7 @@ An advanced, end-to-end framework utilizing a multi-agent deep learning approach
 - **Automated Semantic Segmentation**: Detects and localizes Liver, HCC Mass, Portal Vein, and Abdominal Aorta.
 - **Zero Patient Leakage**: Guaranteed 0% overlap between Train (72 patients), Validation (15 patients), and Test (17 patients) splits.
 - **Interactive UI**: A beautifully crafted React (Vite) + Tailwind CSS v4 dashboard providing seamless CT analysis and on-the-fly image uploads.
+- **Decision / Results Agent**: Local Llama 3.1 8B (Ollama) synthesizes upstream evidence into a structured explanation. It does not diagnose, recommend treatment, or invent missing clinical facts.
 
 ---
 
@@ -28,7 +29,8 @@ graph TD
     E --> F[Visual Embedding]
     F --> G[FAISS Retrieval Index]
     G --> H[Multi-Agent Evidence Reranking]
-    H --> I[Web Dashboard Visualization]
+    H --> J[Decision / Results Agent]
+    J --> I[Web Dashboard Visualization]
 ```
 
 ### Segmentation Classes
@@ -128,8 +130,21 @@ Based on the integrated **MedOtter/HCC-TACE-Seg** dataset processing:
 │   │   └── index.css         # Tailwind v4 configuration
 │   └── index.html
 ├── scripts/                  # Utilities (e.g., FAISS demo index generator)
+├── LiverCancer-MultiAgent-Retrieval/
+│   ├── agents/decision_agent.py   # Decision / Results Agent (Llama 3.1 8B via Ollama)
+│   ├── prompts/decision_prompt.py
+│   └── configs/default.yaml
 ├── data/                     # (Gitignored) Raw and processed DICOM/PNG data
 └── configs/                  # Pipeline configurations
+```
+
+### Decision / Results Agent
+Local **Llama 3.1 8B** through **Ollama** synthesizes structured evidence from earlier agents. It does not run segmentation or retrieval and must not invent missing clinical facts. If Ollama is unavailable, the call fails; there is no cloud fallback.
+
+```powershell
+cd LiverCancer-MultiAgent-Retrieval
+ollama pull llama3.1:8b
+python scripts\test_decision_agent.py
 ```
 
 ---

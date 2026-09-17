@@ -82,7 +82,7 @@ export default function Agents() {
             <h3 className="font-bold text-white">Decision / Results Agent</h3>
             <p className="text-xs text-slate-400">Explanation & evidence synthesis</p>
           </div>
-          <span className="ml-auto px-2 py-1 bg-slate-800 text-slate-400 text-[10px] rounded border border-slate-700">Planned</span>
+          <span className="ml-auto px-2 py-1 bg-green-950 text-green-400 text-[10px] rounded border border-green-900">Implemented</span>
         </div>
 
       </div>
