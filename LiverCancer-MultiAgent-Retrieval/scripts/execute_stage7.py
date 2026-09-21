@@ -123,7 +123,7 @@ def main():
     
     # Structured features: drop categorical/ID columns
     # Structured features: drop categorical/ID columns AND the evaluation label to prevent leakage
-    exclude_cols = ['case_id', 'patient_id', 'partition', 'slice_index', 'tumor_to_liver_area_ratio']
+    exclude_cols = ['case_id', 'patient_id', 'partition', 'slice_index', 'tumor_to_liver_area_ratio', 'portal_vein_area_px']
     feat_cols = [c for c in df_slice.columns if c not in exclude_cols and df_slice[c].dtype in [np.float32, np.float64, np.int64, bool]]
     
     struct_feats_raw = df_slice[feat_cols].fillna(0).astype(np.float32).values
@@ -165,9 +165,9 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
     criterion = InfoNCELoss(temperature=0.1)
     
-    EPOCHS = 5
+    EPOCHS = 20
     print(f"\nTraining Multimodal Fusion via Contrastive Learning for {EPOCHS} epochs...")
-    print("NOTE: 5 epochs is a lightweight training regime designed for demonstration, not fully converged.")
+    print("NOTE: 20 epochs ensures stronger convergence without the crutch of collinear geometric features.")
     
     model.train()
     for epoch in range(EPOCHS):
@@ -231,6 +231,18 @@ def main():
     np.save(fused_dir / "concat_fused.npy", case_cat)
     np.save(fused_dir / "weighted_fused.npy", case_wei)
     np.save(fused_dir / "gated_fused.npy", case_gat)
+    np.save(fused_dir / "gated_slice_fused.npy", gat_slice)
+    
+    # Save Model Weights and Scaler for Live Inference
+    print("\nSaving GatedFusion model weights and structured feature scaler for live backend inference...")
+    models_dir = PROJECT_ROOT / "data" / "models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    
+    torch.save(model.state_dict(), models_dir / "gated_fusion.pt")
+    np.savez(models_dir / "struct_scaler.npz", mean=mean, std=std)
+    with open(models_dir / "feat_cols.json", "w") as f:
+        json.dump(feat_cols, f)
+    
     
     # 4. Evaluation
     print("\nComputing real MRR and Recall@5 ablation (matching on tumor_to_liver_area terciles)...")
@@ -267,9 +279,9 @@ def main():
             "gated": list(case_gat.shape)
         },
         "ablation_results": {
-            "ConcatFusion_Corrected": res_cat,
-            "WeightedFusion_Corrected": res_wei,
-            "GatedFusion_Corrected": res_gat
+            "ConcatFusion_FullyDecorrelated": res_cat,
+            "WeightedFusion_FullyDecorrelated": res_wei,
+            "GatedFusion_FullyDecorrelated": res_gat
         },
         "gated_fusion_interpretation": f"Based on the empirical gate distribution (mean={mean_gate:.4f}), the model dynamically prioritizes visual features {vis_reliance:.1f}% of the time and structured features {struct_reliance:.1f}% of the time."
     }

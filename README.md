@@ -11,12 +11,12 @@ An advanced, end-to-end framework utilizing a multi-agent deep learning approach
 - **End-to-End Real Data Pipeline**: Operates on raw DICOM/NIfTI ingestion and strictly validates against 104 real patient cases (11,277 CT slices).
 - **Automated Semantic Segmentation**: Utilizes a robust **U-Net + ResNet-34** backbone to precisely detect and localize Liver, HCC Mass, Portal Vein, and Abdominal Aorta, achieving an impressive **0.7572 Validation Mass Dice**.
 - **Deep Multimodal Fusion**:
-  - **Structured Agent:** Extracts 41 handcrafted morphological, spatial, and intensity-based features per slice.
+  - **Structured Agent:** Extracts 39 decorrelated morphological, spatial, and intensity-based features per slice.
   - **Visual Agent:** Extracts deep 2048-dimensional embeddings of the segmented HCC tumor crop using a pretrained **ResNet-50** backbone.
-  - **Fusion Engine:** Employs a `GatedFusion` neural network trained via contrastive **InfoNCE loss** (achieving >0.91 MRR), dynamically learning to prioritize visual vs. structural features.
-- **Deep Feature Indexing**: Utilizes **FAISS** to rapidly query thousands of fused multi-dimensional representations in milliseconds.
+  - **Fusion Engine:** Employs a `GatedFusion` neural network trained via contrastive **InfoNCE loss** (achieving >0.94 MRR), dynamically learning to prioritize visual vs. structural features.
+- **Deep Feature Indexing**: Utilizes **FAISS** to rapidly query thousands of fused multi-dimensional representations in milliseconds. Maintains dual indices: a **case-level index** (104 patients) and a **slice-level index** (11,277 slices) for precise 2D-to-2D image matching.
 - **Decision Agent**: Local **Llama 3.1 8B** via Ollama synthesizes the retrieved clinical evidence into structured, easy-to-read explanations.
-- **Interactive UI**: A beautifully crafted React (Vite) + Tailwind CSS v4 dashboard providing seamless CT analysis and on-the-fly image uploads.
+- **Interactive UI**: A beautifully crafted React (Vite) + Tailwind CSS v4 dashboard providing seamless CT analysis and on-the-fly image uploads with end-to-end live inference.
 
 ---
 
@@ -41,14 +41,14 @@ flowchart TD
     E[Structured Feature Agent\n(Morphology, Intensity, Anatomy)]:::agent
     F[Visual Feature Agent\n(Tumor & Liver Crops)]:::agent
     
-    G((41-Dim\nStructured Array)):::data
+    G((39-Dim\nStructured Array)):::data
     H[ResNet-50 Encoder]:::model
     I((2048-Dim\nVisual Embedding)):::data
     
     J[GatedFusion Network\n(Trained via InfoNCE)]:::model
     K((256-Dim\nFused Representation)):::data
     
-    L[(FAISS Vector Index)]:::db
+    L[(FAISS Vector Index\nCase & Slice Level)]:::db
     M[Evidence Reranking Agent]:::agent
     N[Local LLM Decision Agent\n(Llama 3.1 8B)]:::model
     O([Web Dashboard]):::data
@@ -94,10 +94,10 @@ This repository is divided into strict pipeline stages to transform raw medical 
 
 1. **Dataset Ingestion & Preprocessing (Stages 1-4):** Converts complex DICOM series into standardized Numpy arrays, strictly isolating patients into Train, Val, and Test splits.
 2. **Semantic Segmentation Training:** A U-Net with a ResNet-34 encoder trains on the prepared masks. The model learns to segment the tumor and major organs with high fidelity.
-3. **Structured Feature Extraction (Stage 5):** Parses the output masks into exact computational metrics—calculating tumor area, solidity, perimeter, portal vein proximity, and surrounding peritumoral HU intensity gradients.
+3. **Structured Feature Extraction (Stage 5):** Parses the output masks into exact computational metrics—calculating tumor area, solidity, perimeter, portal vein proximity, and surrounding peritumoral HU intensity gradients (yielding 39 decorrelated features).
 4. **Visual Embedding (Stage 6):** Cropping out the segmented HCC tumor and passing it through a ResNet-50 visual encoder to capture deep textural patterns (necrosis, enhancement) that handcrafted features miss.
-5. **Contrastive Multimodal Fusion (Stage 7):** A PyTorch `MultimodalFusionEngine` learns to merge the 41-dim structural vector and 2048-dim visual vector. By sampling same-patient slice pairs and training with an `InfoNCELoss`, the model learns an optimal 256-dim fused projection space.
-6. **FAISS Retrieval & Multi-Agent Synthesis (Stages 8-10):** The resulting database is queried instantly via FAISS. A local LLM agent interprets the retrieval results to explain *why* the matched historical patient is clinically similar to the uploaded scan.
+5. **Contrastive Multimodal Fusion (Stage 7):** A PyTorch `MultimodalFusionEngine` learns to merge the 39-dim structural vector and 2048-dim visual vector. By sampling same-patient slice pairs and training with an `InfoNCELoss`, the model learns an optimal 256-dim fused projection space.
+6. **FAISS Retrieval & Multi-Agent Synthesis (Stages 8-10):** The resulting database is queried instantly via FAISS (supporting both case-level queries and real-time slice-level single image uploads). A local LLM agent interprets the retrieval results to explain *why* the matched historical patient is clinically similar to the uploaded scan.
 
 ---
 

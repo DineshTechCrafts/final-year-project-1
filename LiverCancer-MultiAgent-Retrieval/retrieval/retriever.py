@@ -42,13 +42,17 @@ class CaseRetriever:
             if exclude_patient_id and row['patient_id'] == exclude_patient_id:
                 continue
                 
-            results.append({
+            res_dict = {
                 "rank": rank,
                 "case_id": row['case_id'],
                 "similarity": float(sim),
                 "patient_id": row['patient_id'],
                 "partition": row['partition']
-            })
+            }
+            if 'slice_index' in row:
+                res_dict['slice_index'] = int(row['slice_index'])
+                
+            results.append(res_dict)
             
             rank += 1
             if len(results) >= top_k:
