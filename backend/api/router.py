@@ -35,13 +35,13 @@ def get_patient_slices(patient_id: str):
 
 @api_router.get("/patients/{patient_id}/slice/{slice_index}/image")
 def get_slice_image(patient_id: str, slice_index: int):
-    path = image_service.get_slice_image_path(patient_id, slice_index)
-    return FileResponse(path, media_type="image/png")
+    img_bytes = image_service.get_slice_image_png(patient_id, slice_index)
+    return Response(content=img_bytes, media_type="image/png")
 
 @api_router.get("/patients/{patient_id}/slice/{slice_index}/mask")
 def get_slice_mask(patient_id: str, slice_index: int):
-    path = segmentation_service.get_slice_mask_path(patient_id, slice_index)
-    return FileResponse(path, media_type="image/png")
+    img_bytes = segmentation_service.get_slice_mask_png(patient_id, slice_index)
+    return Response(content=img_bytes, media_type="image/png")
 
 @api_router.get("/patients/{patient_id}/slice/{slice_index}/overlay")
 def get_slice_overlay(
@@ -72,6 +72,11 @@ async def upload_image(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=result["error"])
         
     return result
+
+@api_router.post("/retrieval/synthesize")
+async def synthesize_results(payload: dict):
+    from backend.services.synthesis_service import synthesize_pipeline_results
+    return synthesize_pipeline_results(payload)
 
 @api_router.get("/model/status")
 def get_model_status():

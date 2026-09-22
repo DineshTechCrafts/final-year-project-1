@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import { uploadImage, getOverlayUrl } from '../api/client';
-import { UploadCloud, FileImage, Loader2, BrainCircuit, Activity } from 'lucide-react';
+import { uploadImage, getOverlayUrl, synthesizeResults } from '../api/client';
+import { UploadCloud, FileImage, Loader2, BrainCircuit, Activity, MessageSquare, AlertTriangle, Clock } from 'lucide-react';
 
 export default function Upload() {
   const [file, setFile] = useState<File | null>(null);
@@ -8,6 +8,9 @@ export default function Upload() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [llmLoading, setLlmLoading] = useState(false);
+  const [llmSynthesis, setLlmSynthesis] = useState<any>(null);
+  const [llmLatency, setLlmLatency] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,6 +20,8 @@ export default function Upload() {
       setPreview(URL.createObjectURL(selectedFile));
       setResults(null);
       setError(null);
+      setLlmSynthesis(null);
+      setLlmLatency(null);
     }
   };
 
@@ -24,13 +29,32 @@ export default function Upload() {
     if (!file) return;
     setLoading(true);
     setError(null);
+    setLlmSynthesis(null);
+    setLlmLatency(null);
+    
+    let pipelineData = null;
     try {
-      const data = await uploadImage(file);
-      setResults(data);
+      pipelineData = await uploadImage(file);
+      setResults(pipelineData);
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setLoading(false);
+      return;
+    } 
+    setLoading(false);
+
+    // KICK OFF LLM
+    setLlmLoading(true);
+    try {
+      const start = performance.now();
+      const llmData = await synthesizeResults(pipelineData);
+      const end = performance.now();
+      setLlmLatency(end - start);
+      setLlmSynthesis(llmData.synthesis);
+    } catch (err: any) {
+      console.error("LLM failed", err);
+    } finally {
+      setLlmLoading(false);
     }
   };
 
@@ -132,7 +156,7 @@ export default function Upload() {
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {results.results.map((r: any, idx: number) => (
-                  <div key={r.candidate_case_id} className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden hover:border-cyan-500/50 transition-colors shadow-md relative group">
+                  <div key={r.case_id} className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden hover:border-cyan-500/50 transition-colors shadow-md relative group">
                     <div className="absolute top-2 left-2 bg-cyan-500 text-slate-950 text-xs font-bold px-2 py-1 rounded shadow-lg z-10">
                       #{idx + 1}
                     </div>
@@ -140,14 +164,76 @@ export default function Upload() {
                       {(r.similarity * 100).toFixed(1)}% Match
                     </div>
                     <div className="aspect-video bg-black relative">
-                      <img src={getOverlayUrl(r.candidate_case_id, r.matched_slice, [1, 2])} alt="Match" className="absolute inset-0 w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
+                      <img src={getOverlayUrl(r.case_id, r.slice_index, [1, 2])} alt="Match" className="absolute inset-0 w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
                     </div>
                     <div className="p-4 border-t border-slate-800">
-                      <div className="font-bold text-white text-lg">{r.candidate_case_id.toUpperCase()}</div>
-                      <div className="text-sm text-slate-400 mt-1">Matched at Slice {r.matched_slice}</div>
+                      <div className="font-bold text-white text-lg">{r.case_id.toUpperCase()}</div>
+                      <div className="text-sm text-slate-400 mt-1">Matched at Slice {r.slice_index}</div>
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* LLM Synthesis Panel */}
+              <div className="mt-8 pt-8 border-t border-slate-800">
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-6 h-6 text-purple-400" />
+                    Decision Agent Synthesis (Llama 3.1 8B)
+                  </div>
+                  {llmLatency && (
+                    <div className="flex items-center gap-1 text-sm text-slate-400 font-normal bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                      <Clock className="w-4 h-4" /> {(llmLatency / 1000).toFixed(2)}s latency
+                    </div>
+                  )}
+                </h2>
+                
+                {results.segmentation_warning === "anatomically_inconsistent_prediction" && (
+                  <div className="mb-6 bg-red-950/30 border border-red-900/50 p-4 rounded-xl flex items-start gap-3">
+                    <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-red-400 font-bold mb-1">Segmentation Warning: Anatomically Inconsistent Prediction</h4>
+                      <p className="text-red-300/80 text-sm">
+                        The underlying U-Net segmentation predicted a tumor but detected no surrounding liver tissue (&lt;0.5%). This is highly irregular and suggests the segmentation mask may be a hallucination. Upstream FAISS candidates exhibiting this pattern have been filtered.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {llmLoading ? (
+                  <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-8 flex flex-col items-center justify-center text-slate-400">
+                    <BrainCircuit className="w-10 h-10 mb-4 animate-pulse text-purple-500/50" />
+                    <p className="animate-pulse font-medium">Synthesizing multimodal clinical evidence...</p>
+                    <p className="text-xs mt-2 opacity-60">Running inference on local Ollama engine</p>
+                  </div>
+                ) : llmSynthesis ? (
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-6 space-y-6">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Clinical Synthesis</h4>
+                      <p className="text-slate-200 leading-relaxed text-sm">{llmSynthesis.evidence_synthesis}</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Segmentation Findings</h4>
+                        <p className="text-slate-300 text-sm">{llmSynthesis.segmentation_findings}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Retrieval Findings</h4>
+                        <p className="text-slate-300 text-sm">{llmSynthesis.retrieval_findings}</p>
+                      </div>
+                    </div>
+                    <div className="pt-4 border-t border-slate-800/50 flex flex-col gap-3">
+                      <div className="flex gap-2 text-sm">
+                        <span className="font-bold text-slate-400 shrink-0">Note:</span>
+                        <span className="text-slate-300">{llmSynthesis.clinical_note}</span>
+                      </div>
+                      <div className="flex gap-2 text-sm">
+                        <span className="font-bold text-slate-400 shrink-0">Limitations:</span>
+                        <span className="text-yellow-500/80">{llmSynthesis.limitations}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : (

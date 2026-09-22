@@ -189,16 +189,32 @@ class RetrievalService:
             
             # Since the slice retriever retrieves slice-level entries, the returned 'case_id' 
             # is actually the case_id, but the metadata should contain 'slice_index' if we want to show it.
-            # Wait, does gated_slice_metadata.parquet contain 'slice_index'?
-            # Yes, slice_features_ground_truth.parquet has 'slice_index'.
-            # Let's ensure the frontend knows which slice was retrieved.
             
-            # Also compute basic ratios for the UI display
+            # Compute basic ratios for the UI display
             total_pixels = mask_arr.size
             liver_ratio = float((mask_arr == 1).sum() / total_pixels)
             mass_ratio = float((mask_arr == 2).sum() / total_pixels)
             
-            return {
+            # 7. Anatomical Consistency Check on Candidates
+            # We explicitly drop candidates from the FAISS results that exhibit the hallucination pattern.
+            filtered_results = []
+            for c in results:
+                # The candidate metadata contains all extracted features
+                c_mass = c.get('tumor_area_px', 0)
+                c_liver = c.get('liver_area_px', 0)
+                # Ensure they are numeric
+                if pd.isna(c_mass): c_mass = 0
+                if pd.isna(c_liver): c_liver = 0
+                
+                c_liver_ratio = float(c_liver) / 65536.0
+                
+                if float(c_mass) > 0 and c_liver_ratio < 0.005:
+                    # Contradictory candidate! Skip it.
+                    print(f"RERANKER: Dropping anatomically contradictory candidate {c['case_id']} slice {c.get('slice_index')} (Mass: {c_mass}, Liver Ratio: {c_liver_ratio:.4f})")
+                    continue
+                filtered_results.append(c)
+                
+            response = {
                 "query_case_id": "upload",
                 "demo_mode": False,
                 "retrieval_mode": "real_faiss_index",
@@ -207,8 +223,14 @@ class RetrievalService:
                     "liver_ratio": round(liver_ratio, 4),
                     "mass_ratio": round(mass_ratio, 4)
                 },
-                "results": results
+                "results": filtered_results
             }
+            
+            # Query-side validation warning
+            if mass_ratio > 0 and liver_ratio < 0.005:
+                response["segmentation_warning"] = "anatomically_inconsistent_prediction"
+                
+            return response
             
         except Exception as e:
             import traceback

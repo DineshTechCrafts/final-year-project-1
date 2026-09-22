@@ -4,14 +4,18 @@ import { Search, BrainCircuit, ScanSearch, Info } from 'lucide-react';
 
 export default function Retrieval() {
   const [patients, setPatients] = useState<any[]>([]);
-  const [queryPatient, setQueryPatient] = useState("hcc_055");
+  const [queryPatient, setQueryPatient] = useState("");
   const [querySlice, setQuerySlice] = useState(35);
+  const [totalSlices, setTotalSlices] = useState(71);
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchAPI('/patients').then(res => {
       setPatients(res.patients);
+      if (res.patients.length > 0) {
+        setQueryPatient(res.patients[0].patient_id);
+      }
     }).catch(console.error);
   }, []);
 

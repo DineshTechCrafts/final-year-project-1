@@ -25,32 +25,36 @@ class DatasetService:
             for pid in patient_list:
                 patient_to_split[pid] = split_name
 
+        CACHE_DATA_PATH = PROJECT_ROOT / "LiverCancer-MultiAgent-Retrieval" / "data" / "cache" / "cases"
         patients_data = {}
-        if not PROCESSED_DATA_PATH.exists():
+        if not CACHE_DATA_PATH.exists():
             return patients_data
 
-        for p_dir in PROCESSED_DATA_PATH.iterdir():
+        for p_dir in CACHE_DATA_PATH.iterdir():
             if not p_dir.is_dir():
                 continue
             
             pid = p_dir.name
             
-            # Normalize to hcc_XXX if needed (the prompt says to handle hcc_055 canonical)
-            if pid == "hcc055":
-                continue # Skip the deleted one if it somehow lingers
-
-            images_dir = p_dir / "images"
-            if images_dir.exists():
-                slices = list(images_dir.glob("*.png"))
-                num_slices = len(slices)
+            # Since these are real generated cases, the patient ID is the first part of the UUID (e.g. 20dfdb3d19c8)
+            # Or we can just use the whole case_id as pid
+            
+            image_file = p_dir / "image.npy"
+            if image_file.exists():
+                import numpy as np
+                # Use mmap to quickly read shape without loading array
+                try:
+                    images = np.load(image_file, mmap_mode='r')
+                    num_slices = len(images)
+                except Exception:
+                    num_slices = 0
             else:
                 num_slices = 0
 
-            # Only include patients with valid slices
             if num_slices > 0:
                 patients_data[pid] = {
                     "patient_id": pid,
-                    "split": patient_to_split.get(pid, "unknown"),
+                    "split": patient_to_split.get(pid.split('_')[0], "test"), # Guess split from original patient ID
                     "num_slices": num_slices,
                     "classes_present": ["Background", "Liver", "Mass", "Portal vein", "Abdominal aorta"]
                 }

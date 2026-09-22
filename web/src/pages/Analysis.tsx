@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Analysis() {
   const [patients, setPatients] = useState<any[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<string>("hcc_055");
+  const [selectedPatient, setSelectedPatient] = useState<string>("");
   const [sliceIndex, setSliceIndex] = useState(35);
   const [totalSlices, setTotalSlices] = useState(71);
   const [viewMode, setViewMode] = useState<'original' | 'mask' | 'overlay'>('overlay');
@@ -19,7 +19,7 @@ export default function Analysis() {
   useEffect(() => {
     fetchAPI('/patients').then(res => {
       setPatients(res.patients);
-      if (res.patients.length > 0 && !res.patients.find((p: any) => p.patient_id === "hcc_055")) {
+      if (res.patients.length > 0) {
         setSelectedPatient(res.patients[0].patient_id);
       }
     }).catch(console.error);

@@ -27,6 +27,7 @@ Hard rules:
 - If retrieval evidence is weak or conflicting, evidence_synthesis must reflect that. Do not claim strong overall support in that situation.
 - Do not give treatment recommendations.
 - Distinguish: (1) observed / model-derived evidence, (2) retrieved evidence, (3) interpretation.
+- If evidence contains "segmentation_warning", you MUST explicitly state this warning in segmentation_findings and evidence_synthesis. State that the segmentation quality is uncertain and any findings derived from it (like tumor presence or metrics) may be unreliable or hallucinated.
 - Every field except similar_cases must be a plain English string, never a nested JSON object or array.
 - clinical_note must be an AI-assisted evidence summary requiring radiological/clinical confirmation.
 

@@ -26,12 +26,31 @@ export const uploadImage = async (file: File) => {
   formData.append("file", file);
   
   const response = await fetch(`${API_BASE_URL}/upload`, {
-    method: "POST",
+    method: 'POST',
     body: formData,
   });
-  
+
   if (!response.ok) {
-    throw new Error(`API error: ${response.statusText}`);
+    const errorData = await response.json();
+    throw new Error(errorData.detail || 'Upload failed');
   }
+
+  return response.json();
+};
+
+export const synthesizeResults = async (payload: any) => {
+  const response = await fetch(`${API_BASE_URL}/retrieval/synthesize`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || 'Synthesis failed');
+  }
+
   return response.json();
 };

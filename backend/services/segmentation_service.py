@@ -23,33 +23,63 @@ class SegmentationService:
             4: [50, 255, 50, 150]      # Aorta - Green
         }
 
-    def get_slice_mask_path(self, patient_id: str, slice_index: int) -> Path:
-        filename = f"{slice_index:04d}.png"
-        mask_path = PROCESSED_DATA_PATH / patient_id / "masks" / filename
+    def get_slice_mask_path(self, case_id: str) -> Path:
+        mask_path = PROJECT_ROOT / "LiverCancer-MultiAgent-Retrieval" / "data" / "cache" / "cases" / case_id / "mask.npy"
         
         if not mask_path.exists():
             raise HTTPException(status_code=404, detail="Mask slice not found")
             
         return mask_path
 
-    def get_colored_mask_png(self, patient_id: str, slice_index: int, active_classes: list[int]) -> bytes:
-        mask_path = self.get_slice_mask_path(patient_id, slice_index)
-        mask_img = Image.open(mask_path).convert('L')
-        mask_arr = np.array(mask_img)
+    def get_slice_mask_png(self, case_id: str, slice_index: int) -> bytes:
+        from PIL import Image
+        from io import BytesIO
+        mask_path = self.get_slice_mask_path(case_id)
+        masks = np.load(mask_path, mmap_mode='r')
+        if slice_index >= len(masks) or slice_index < 0:
+            raise HTTPException(status_code=404, detail="Slice index out of bounds")
+            
+        mask_arr = masks[slice_index]
+        img_pil = Image.fromarray((mask_arr * 50).astype(np.uint8)).convert('L') # Multiply by 50 for visibility
+        buf = BytesIO()
+        img_pil.save(buf, format='PNG')
+        return buf.getvalue()
+
+    def get_colored_mask_png(self, case_id: str, slice_index: int, active_classes: list[int]) -> bytes:
+        mask_path = self.get_slice_mask_path(case_id)
+        image_path = PROJECT_ROOT / "LiverCancer-MultiAgent-Retrieval" / "data" / "cache" / "cases" / case_id / "image.npy"
         
-        # Create an RGBA image
+        masks = np.load(mask_path, mmap_mode='r')
+        if slice_index >= len(masks) or slice_index < 0:
+            raise HTTPException(status_code=404, detail="Slice index out of bounds")
+            
+        mask_arr = masks[slice_index]
+        
+        # Load corresponding image slice
+        images = np.load(image_path, mmap_mode='r')
+        img_arr = images[slice_index]
+        img_rgb = np.stack([img_arr, img_arr, img_arr], axis=-1)
+        if img_rgb.max() <= 1.0:
+            img_rgb = (img_rgb * 255).astype(np.uint8)
+        else:
+            img_rgb = img_rgb.astype(np.uint8)
+            
+        base_img = Image.fromarray(img_rgb).convert('RGBA')
+        
+        # Create an RGBA mask
         rgba_arr = np.zeros((*mask_arr.shape, 4), dtype=np.uint8)
         
         for class_idx, color in self.color_map.items():
             if class_idx == 0:
                 continue
             if class_idx in active_classes:
-                # Apply color where mask equals class_idx
                 rgba_arr[mask_arr == class_idx] = color
                 
-        out_img = Image.fromarray(rgba_arr, 'RGBA')
+        overlay_img = Image.fromarray(rgba_arr, 'RGBA')
+        final_img = Image.alpha_composite(base_img, overlay_img)
+        
         buf = BytesIO()
-        out_img.save(buf, format='PNG')
+        final_img.save(buf, format='PNG')
         return buf.getvalue()
 
 segmentation_service = SegmentationService()
